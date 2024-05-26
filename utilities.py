@@ -1,3 +1,7 @@
+import pygame
+import random
+import math
+
 class Game:
     MAX_LEVEL = 5
     def __init__(self, width, height):
