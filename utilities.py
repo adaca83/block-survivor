@@ -1,3 +1,7 @@
+import pygame
+import random
+import math
+
 class Game:
     MAX_LEVEL = 5
     def __init__(self, width, height):
@@ -81,37 +85,81 @@ class Game:
         text_rect = timer_text.get_rect(center=(self.width // 2, 10))
         screen.blit(timer_text, text_rect)
 
+    def run_startscreen(self, screen):
+        welcome_1 = pygame.image.load("assets/images/welcome/welcome_screen.png")
+        screen.blit(welcome_1,(0, 0))
+
+    def run_credits(self, screen, elapsed_time):
+        credit_1 = pygame.image.load("assets/images/credits/credit_screen.png")
+        screen.blit(credit_1,(0, 0))
+        screen.blit(self.font.render(f"{elapsed_time}", False, "White"),(425,262))
+
+
     def run(self, FPS):
         screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Square Survivor (Beta 0.1)")
         clock = pygame.time.Clock()
-        start_time = pygame.time.get_ticks()
         running = True
+        startscreen = True
+        game_active = False
+        credit_screen = False
+
         while running:
-            elapsed_time = (pygame.time.get_ticks() - start_time) / 1000
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-            screen.fill((0, 0, 0))
-            self.player.update(self.enemies, self.walls)
-            self.player.draw(screen)
-            for enemy in self.enemies:
-                enemy.update(self.player.x, self.player.y, self.walls)
-                enemy.draw(screen)
-            for wall in self.walls:
-                wall.draw(screen)
-            self.draw_life_meter(screen)
-            self.draw_timer(screen, elapsed_time)
-            if not self.check_collisions():
-                running = False
+
+                elif event.type == pygame.KEYDOWN and startscreen:
+                    game_active = True
+                    startscreen = False
+                    credit_screen = False
+                    start_time = pygame.time.get_ticks()
+
+                elif event.type == pygame.KEYDOWN and credit_screen:
+                    if event.key == pygame.K_SPACE:
+                        credit_screen = False
+                        startscreen = False
+                        self.reset()
+                        game_active = True
+                        start_time = pygame.time.get_ticks()
+
+                    elif event.key == pygame.K_q:
+                        credit_screen = False
+                        running = False
+
+            if startscreen:
+                self.run_startscreen(screen)
+
+            elif credit_screen:
+                self.run_credits(screen, elapsed_time)
+
+            elif game_active:
+                elapsed_time = (pygame.time.get_ticks() - start_time) / 1000
+                screen.fill((0, 0, 0))
+                self.player.update(self.enemies, self.walls)
+                self.player.draw(screen)
+                for enemy in self.enemies:
+                    enemy.update(self.player.x, self.player.y, self.walls)
+                    enemy.draw(screen)
+                for wall in self.walls:
+                    wall.draw(screen)
+                self.draw_life_meter(screen)
+                self.draw_timer(screen, elapsed_time)
+                if not self.check_collisions():
+                    game_active = False
+                    credit_screen = True
+
+                # Increase the number of enemies every 20 seconds
+                if int(elapsed_time) % 5 == 0 and len(self.enemies) < int(elapsed_time) // 5 + 5:
+                    self.enemies.append(Enemy(self.width, self.height))
+
             pygame.display.flip()
             clock.tick(FPS)
 
-            # Increase the number of enemies every 20 seconds
-            if int(elapsed_time) % 5 == 0 and len(self.enemies) < int(elapsed_time) // 5 + 5:
-                self.enemies.append(Enemy(self.width, self.height))
-
         pygame.quit()
+
+                
+
 
 class Enemy:
     LEVEL_COLORS = {
