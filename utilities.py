@@ -1,6 +1,7 @@
 import pygame
 import random
 import math
+import csv
 
 class Game:
     MAX_LEVEL = 5
@@ -12,6 +13,8 @@ class Game:
         self.walls = []
         self.initialize_enemies(5)  # Initialize with 5 enemies
         self.font = pygame.font.Font(None, 36)
+        self.hiscore_font = pygame.font.Font("assets/fonts/ARCADECLASSIC.ttf", 50)
+        self.hiscore_file = "hiscore.csv"
 
     def initialize_enemies(self, num_enemies):
         self.enemies = [Enemy(self.width, self.height) for _ in range(num_enemies)]
@@ -89,13 +92,92 @@ class Game:
         welcome_1 = pygame.image.load("assets/images/welcome/welcome_screen.png")
         screen.blit(welcome_1,(0, 0))
 
+    def run_new_hiscore(self, screen):
+        newscore_1 = pygame.image.load("assets/images/hiscore/hiscore_screen.png")
+        screen.blit(newscore_1,(0, 0))
+
+
+    def fetch_hiscore(self):
+        hiscore_list = []
+
+        with open(self.hiscore_file, newline='', mode='r', encoding='utf-8') as csv_file:
+            reader = csv.reader(csv_file)
+            next(reader)
+            all_scores = list(reader)
+
+        for score in all_scores:
+            edited_score = f"{score[0]}   {score[1]}   {score[2]}"
+            hiscore_list.append(edited_score)
+
+        return hiscore_list
+    
+    def check_if_highscore(self, elapsed_time):
+
+        with open(self.hiscore_file, newline='', mode='r', encoding='utf-8') as csv_file:
+            reader = csv.reader(csv_file)
+            next(reader)
+            all_scores = list(reader)
+        
+        for score_list in all_scores:
+            if int(score_list[2]) < elapsed_time:
+                return True
+        return False
+    
+    def save_highscore(self, player_name, elapsed_time):
+        with open(self.hiscore_file, newline='', mode='r', encoding='utf-8') as csv_file:
+            reader = csv.reader(csv_file)
+            header = next(reader)
+            all_scores = list(reader)
+
+        # Convert elapsed_time to int for comparison
+        elapsed_time = int(elapsed_time)
+
+        # Determine the position for the new score
+        position = 1
+        for i, score in enumerate(all_scores):
+            if elapsed_time > int(score[2]):
+                position = i + 1
+                break
+            else:
+                position = i + 2
+
+        # Add the new score entry
+        new_score = [position, player_name, elapsed_time]
+        all_scores.append(new_score)
+        # Sort the scores: highest first
+        all_scores.sort(key=lambda x: int(x[2]), reverse=True)
+        # Keep only the top 3 scores
+        all_scores = all_scores[:3]
+
+        n = 1
+        for score in all_scores:
+            score[0] = n
+            n+=1
+
+        # Write back to the CSV
+        with open(self.hiscore_file, mode='w', newline='', encoding='utf-8') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(header)
+            writer.writerows(all_scores)
+
+
+
     def run_credits(self, screen, elapsed_time):
+        hiscore = self.fetch_hiscore()
+
         credit_1 = pygame.image.load("assets/images/credits/credit_screen.png")
-        screen.blit(credit_1,(0, 0))
-        screen.blit(self.font.render(f"{elapsed_time}", False, "White"),(425,262))
+        screen.blit(credit_1, (0, 0))
+        screen.blit(self.font.render(f"{int(elapsed_time)}", False, "White"), (465, 154))
+
+        n = 260
+        for score in hiscore:
+            screen.blit(self.hiscore_font.render(f"{score}", False, "White"), (230, n))
+            n += 50
+
 
 
     def run(self, FPS):
+        pygame.init()
         screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Square Survivor (Beta 0.1)")
         clock = pygame.time.Clock()
@@ -103,35 +185,66 @@ class Game:
         startscreen = True
         game_active = False
         credit_screen = False
+        new_hiscore_screen = False
+        elapsed_time = 0
+        player_name = ""
 
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
 
-                elif event.type == pygame.KEYDOWN and startscreen:
-                    game_active = True
-                    startscreen = False
-                    credit_screen = False
-                    start_time = pygame.time.get_ticks()
-
-                elif event.type == pygame.KEYDOWN and credit_screen:
-                    if event.key == pygame.K_SPACE:
-                        credit_screen = False
-                        startscreen = False
-                        self.reset()
+                elif event.type == pygame.KEYDOWN:
+                    if startscreen:
                         game_active = True
+                        startscreen = False
+                        credit_screen = False
                         start_time = pygame.time.get_ticks()
 
-                    elif event.key == pygame.K_q:
-                        credit_screen = False
-                        running = False
+                    elif credit_screen:
+                        if event.key == pygame.K_SPACE:
+                            credit_screen = False
+                            startscreen = False
+                            self.reset()
+                            game_active = True
+                            start_time = pygame.time.get_ticks()
+
+                        elif event.key == pygame.K_q:
+                            credit_screen = False
+                            running = False
+                        
+                    elif new_hiscore_screen:
+                        if event.key == pygame.K_RETURN:
+                            self.save_highscore(player_name, elapsed_time)
+                            new_hiscore_screen = False
+                            credit_screen = True
+                            player_name = ""
+                        elif event.key == pygame.K_BACKSPACE:
+                            player_name = player_name[:-1]
+                        else:
+                            if len(player_name) < 6:
+                                player_name += event.unicode
+
+                    elif game_active and event.key == pygame.K_x:
+                        game_active = False
+                        if self.check_if_highscore(elapsed_time):
+                            new_hiscore_screen = True
+                        else:
+                            credit_screen = True
 
             if startscreen:
                 self.run_startscreen(screen)
 
             elif credit_screen:
                 self.run_credits(screen, elapsed_time)
+
+            elif new_hiscore_screen:
+                self.run_new_hiscore(screen)
+                input_box = pygame.Rect(self.width // 2 - 100, self.height // 2 - 20, 200, 40)
+                color_active = pygame.Color('dodgerblue2')
+                pygame.draw.rect(screen, color_active, input_box, 2)
+                txt_surface = self.font.render(player_name, True, (255, 255, 255))
+                screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
 
             elif game_active:
                 elapsed_time = (pygame.time.get_ticks() - start_time) / 1000
@@ -147,7 +260,11 @@ class Game:
                 self.draw_timer(screen, elapsed_time)
                 if not self.check_collisions():
                     game_active = False
-                    credit_screen = True
+
+                    if self.check_if_highscore(elapsed_time):
+                        new_hiscore_screen = True
+                    else:
+                        credit_screen = True
 
                 # Increase the number of enemies every 20 seconds
                 if int(elapsed_time) % 5 == 0 and len(self.enemies) < int(elapsed_time) // 5 + 5:
