@@ -80,9 +80,10 @@ class Game:
                 self.player.hp -= enemy.level
                 self.spatial_grid.remove(enemy, enemy.x, enemy.y)
                 self.enemies.remove(enemy)
-                enemy.reset_position()
-                self.enemies.append(enemy)
-                self.spatial_grid.add(enemy, enemy.x, enemy.y)
+                if not enemy.is_horde_enemy:
+                    enemy.reset_position()
+                    self.enemies.append(enemy)
+                    self.spatial_grid.add(enemy, enemy.x, enemy.y)
                 if self.player.hp <= 0:
                     return False
                 
@@ -99,9 +100,10 @@ class Game:
                         self.enemies.remove(enemy)
                         crystal = exp_Crystals(enemy.x, enemy.y)
                         self.crystals.append(crystal)
-                        enemy.reset_position()
-                        self.enemies.append(enemy)
-                        self.spatial_grid.add(enemy, enemy.x, enemy.y)
+                        if not enemy.is_horde_enemy:
+                            enemy.reset_position()
+                            self.enemies.append(enemy)
+                            self.spatial_grid.add(enemy, enemy.x, enemy.y)
                     break
 
             for wall in self.walls:
@@ -109,33 +111,6 @@ class Game:
                     if projectile in self.player.projectiles:
                         self.player.projectiles.remove(projectile)
                     break
-
-        #to_remove = set()
-        #new_enemies = []
-        #current_time = pygame.time.get_ticks()
-
-
-        #for enemy1 in self.enemies:
-        #    nearby_enemies = self.spatial_grid.get_nearby(enemy1.x, enemy1.y)
-        #    for enemy2 in nearby_enemies:
-        #        if enemy1 != enemy2 and enemy1.get_hitbox().colliderect(enemy2.get_hitbox()):
-        #            if (current_time - enemy1.last_evolution_time >= Enemy.COOLDOWN_TIME and
-        #                    current_time - enemy2.last_evolution_time >= Enemy.COOLDOWN_TIME):
-        #                new_level = min(enemy1.level + enemy2.level, self.MAX_LEVEL)
-        #                to_remove.add(enemy1)
-        #                to_remove.add(enemy2)
-        #                new_enemy = Enemy(self, self.width, self.height, level=new_level)
-        #                new_enemy.x, new_enemy.y = enemy1.x, enemy1.y
-        #                new_enemies.append(new_enemy)
-        #                break
-
-        #for enemy in to_remove:
-        #    if enemy in self.enemies:
-        #        self.spatial_grid.remove(enemy, enemy.x, enemy.y)
-        #        self.enemies.remove(enemy)
-        #for new_enemy in new_enemies:
-        #    self.enemies.append(new_enemy)
-        #    self.spatial_grid.add(new_enemy, new_enemy.x, new_enemy.y)
 
         return True
     
@@ -381,7 +356,7 @@ class Enemy:
 
     COOLDOWN_TIME = 5000  # Cooldown time in milliseconds
 
-    def __init__(self, game, game_width, game_height, level=None,):
+    def __init__(self, game, game_width, game_height, level=None, is_horde_enemy=False):
         self.game = game
         self.radius = 10 + (level - 1) * 5  # Increase size slightly with each level
         self.color = self.LEVEL_COLORS.get(level, (255, 255, 255))  # Default to white if level not in dictionary
@@ -391,6 +366,7 @@ class Enemy:
         self.level = level
         self.hp = level
         self.last_evolution_time = pygame.time.get_ticks()  # Time of the last evolution
+        self.is_horde_enemy = is_horde_enemy
         self.reset_position()
         self.previous_x = self.x
         self.previous_y = self.y
@@ -469,7 +445,7 @@ class Enemy:
 class Horde:
     HORDE_MIN_SIZE = 16
     HORDE_MAX_SIZE = 16
-    HORDE_SPACING = 10
+    HORDE_SPACING = 20
     
     def __init__(self, game): 
         self.game = game
@@ -501,7 +477,7 @@ class Horde:
         positions = self.get_horde_positions_outside_of_view(self.pattern, num_enemies)
         
         for pos in positions: 
-            enemy = Enemy(self.game, self.game.width, self.game.height, level=1)
+            enemy = Enemy(self.game, self.game.width, self.game.height, level=1, is_horde_enemy=True)
             enemy.x, enemy.y = pos
             self.enemies.append(enemy)
             self.game.enemies.append(enemy)
@@ -533,7 +509,7 @@ class Horde:
     
     def generate_two_rows(self, num_enemies):
         start_x = random.randint(0, self.game.width)
-        y1, y2 = 0, self.game.height
+        y1, y2 = random.randint(0, self.game.height), random.randint(0, self.game.height) + self.HORDE_SPACING
         row1 = [(start_x + i * self.HORDE_SPACING, y1) for i in range(num_enemies // 2)]
         row2 = [(start_x + i * self.HORDE_SPACING, y2) for i in range(num_enemies // 2, num_enemies)]
         return row1 + row2
@@ -745,3 +721,36 @@ class Environment:
         return pygame.Rect(self.x, self.y, self.width, self.height)
 
 class SpatialGrid:
+    def __init__(self, width, height, cell_size):
+        self.width = width
+        self.height = height
+        self.cell_size = cell_size
+        self.grid = {}
+
+    def _get_cell_coords(self, x, y):
+        return x // self.cell_size, y // self.cell_size
+
+    def add(self, item, x, y):
+        cell_coords = self._get_cell_coords(x, y)
+        if cell_coords not in self.grid:
+            self.grid[cell_coords] = []
+        self.grid[cell_coords].append(item)
+
+    def contains(self, item, x, y):
+        cell_coords = self._get_cell_coords(x, y)
+        return cell_coords in self.grid and item in self.grid[cell_coords]
+
+    def remove(self, item, x, y):
+        cell_coords = self._get_cell_coords(x, y)
+        if cell_coords in self.grid and item in self.grid[cell_coords]:
+            self.grid[cell_coords].remove(item)
+
+    def get_nearby(self, x, y):
+        cell_coords = self._get_cell_coords(x, y)
+        nearby_items = []
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                nearby_cell = (cell_coords[0] + dx, cell_coords[1] + dy)
+                if nearby_cell in self.grid:
+                    nearby_items.extend(self.grid[nearby_cell])
+        return nearby_items
