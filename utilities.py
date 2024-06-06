@@ -56,6 +56,10 @@ class Game:
         self.font = pygame.font.Font(None, 36)
         self.hiscore_font = pygame.font.Font("assets/fonts/ARCADECLASSIC.ttf", 50)
         self.hiscore_file = "hiscore.csv"
+        self.loot_items = []
+
+        # Percentage lootchange from each kill (0 - 100)
+        self.lootchance = 10
         
         
         for enemy in self.enemies: 
@@ -98,6 +102,11 @@ class Game:
                         self.player.projectiles.remove(projectile)
                     enemy.hp -= 1
                     if enemy.hp <= 0:
+                        if random.randint(1,100) <= self.lootchance:
+                            new_loot = Loot(enemy)
+                            self.loot_items.append(new_loot)
+
+                            
                         self.spatial_grid.remove(enemy, enemy.x, enemy.y)
                         self.enemies.remove(enemy)
                         crystal = exp_Crystals(enemy.x, enemy.y)
@@ -115,6 +124,11 @@ class Game:
                     if projectile in self.player.projectiles:
                         self.player.projectiles.remove(projectile)
                     break
+
+        for loot in self.loot_items:
+            if player_hitbox.colliderect(loot.get_hitbox()):
+                self.player.new_weapon(loot)
+                self.loot_items.remove(loot)
 
         return True
     
@@ -318,6 +332,9 @@ class Game:
                     enemy.update(self.player.x, self.player.y, self.walls)
                     enemy.draw(screen)
 
+                for loot in self.loot_items:
+                    loot.draw(screen)
+
                 self.player.update(self.enemies, self.walls, self.crystals)
                 self.player.draw(screen)
                     
@@ -395,6 +412,8 @@ class Enemy:
             self.set_attributes_based_on_level()
 
     def draw(self, screen):
+        self.screen = screen
+
         pygame.draw.circle(screen, self.color,
                            (self.x + self.radius, self.y + self.radius),
                            self.radius)
@@ -611,7 +630,7 @@ class Grid:
     def is_walkable(self, node):
         x, y = node
         return self.matrix[y][x] == 0
-
+    
     
 class Player:
     def __init__(self, x, y, game_width, game_height, game):
@@ -631,6 +650,13 @@ class Player:
         self.experience = 0
         self.level = 1
         self.pickup_radius = 100
+        self.change_weapon = False
+        self.projectile_info = None
+        self.weapon_change_time = None
+
+    def new_weapon(self, projectile:dict):
+        self.projectile_info = projectile
+        self.change_weapon = True
         
         
     def draw(self, screen):
@@ -719,6 +745,7 @@ class Player:
         wall = Environment(self.x, self.y)
         self.game.walls.append(wall)
 
+
     def shoot(self, enemies):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot_time >= self.shot_interval:
@@ -731,6 +758,16 @@ class Player:
                 self.projectiles.append(projectile)
                 self.last_shot_time = current_time
 
+                if self.change_weapon:
+                    projectile.set_new_projectile(self.projectile_info)
+                    self.shot_interval = self.projectile_info.chosen_loot['shootspeed']
+                    self.change_weapon = False
+                    self.weapon_change_time = current_time
+                
+                if self.weapon_change_time is not None and (current_time - self.weapon_change_time) >= self.projectile_info.chosen_loot['duration']:
+                    projectile.reset_projectile()
+                    self.shot_interval = 500
+
     def distance_to(self, enemy):
         dx = enemy.x - self.x
         dy = enemy.y - self.y
@@ -738,15 +775,65 @@ class Player:
 
     def get_hitbox(self):
         return pygame.Rect(self.x, self.y, self.width, self.height)
+    
+
+
+
+class Loot:
+    projectiles = [
+        {'color': (238, 75, 43), 'speed':5, 'width': 10, 'height': 10, 'shootspeed':500, 'duration': 10000},
+        {'color': (255, 195, 0), 'speed':15, 'width': 5, 'height': 5, 'shootspeed':800, 'duration': 10000},
+        {'color': (0, 0, 255), 'speed':2, 'width': 20, 'height': 20, 'shootspeed':100, 'duration': 2000}
+    ]
+
+
+    def __init__(self, enemy):
+        self.chosen_loot = random.choices(
+            self.projectiles, weights=[10, 10, 10], k=1
+        )[0]
+
+        triangle_size = 10
+
+        self.enemy = enemy
+        self.triangle_points = [
+            (self.enemy.x, self.enemy.y - triangle_size),
+            (self.enemy.x - triangle_size, self.enemy.y + triangle_size),
+            (self.enemy.x + triangle_size, self.enemy.y + triangle_size)
+        ]
+
+    def draw(self, screen):
+        self.screen = screen
+
+        pygame.draw.polygon(screen, self.chosen_loot['color'], self.triangle_points)
+
+    def get_hitbox(self):
+        min_x = min(point[0] for point in self.triangle_points)
+        max_x = max(point[0] for point in self.triangle_points)
+        min_y = min(point[1] for point in self.triangle_points)
+        max_y = max(point[1] for point in self.triangle_points)
+
+        width = max_x - min_x
+        height = max_y - min_y
+
+        return pygame.Rect(min_x, min_y, width, height)
+
+            
+
 
 class Projectile:
-    def __init__(self, x, y, target_x, target_y, speed=10):
+    # Standard projectile values
+    default_width = 5
+    default_height = 5
+    default_color = (128, 128, 128)
+    default_speed = 10
+
+    def __init__(self, x, y, target_x, target_y):
         self.x = x
         self.y = y
-        self.width = 5
-        self.height = 5
-        self.color = (128, 128, 128)
-        self.speed = speed
+        self.width = self.default_width
+        self.height = self.default_height
+        self.color = self.default_color
+        self.speed = self.default_speed
         self.target_x = target_x
         self.target_y = target_y
         self.calculate_velocity()
@@ -760,6 +847,20 @@ class Projectile:
             dy /= distance
         self.velocity_x = dx * self.speed
         self.velocity_y = dy * self.speed
+
+    @classmethod
+    def set_new_projectile(cls, loot:dict):
+        cls.default_width = loot.chosen_loot['width']
+        cls.default_height = loot.chosen_loot['height']
+        cls.default_color = loot.chosen_loot['color']
+        cls.default_speed = loot.chosen_loot['speed']
+
+    @classmethod
+    def reset_projectile(cls):
+        cls.default_width = 5
+        cls.default_height = 5
+        cls.default_color = (128, 128, 128)
+        cls.default_speed = 10
 
     def update(self):
         self.x += self.velocity_x
