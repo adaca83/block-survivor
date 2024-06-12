@@ -23,10 +23,16 @@ class Loot:
             (self.enemy.x + triangle_size, self.enemy.y + triangle_size)
         ]
 
-    def draw(self, screen):
+    def draw(self, screen, offset_x, offset_y):
         self.screen = screen
+        
+        offset_points = [
+            (self.triangle_points[0][0] - offset_x, self.triangle_points[0][1] - offset_y),
+            (self.triangle_points[1][0] - offset_x, self.triangle_points[1][1] - offset_y),
+            (self.triangle_points[2][0] - offset_x, self.triangle_points[2][1] - offset_y), 
+        ]
 
-        pygame.draw.polygon(screen, self.chosen_loot['color'], self.triangle_points)
+        pygame.draw.polygon(screen, self.chosen_loot['color'], offset_points)
 
     def get_hitbox(self):
         min_x = min(point[0] for point in self.triangle_points)

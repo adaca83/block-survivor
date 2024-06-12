@@ -19,14 +19,18 @@ class Enemy:
         self.color = self.LEVEL_COLORS.get(level, (255, 255, 255))  # Default to white if level not in dictionary
         self.game_width = game_width
         self.game_height = game_height
-        self.speed = 0.5
+        self.speed = 0.5 * level
         self.level = level if level else self.game.choose_enemy_level()
         self.hp = self.level
         self.last_evolution_time = pygame.time.get_ticks()  # Time of the last evolution
         self.is_horde_enemy = is_horde_enemy
+
+        self.bg_width = game.bg_width
+        self.bg_height = game.bg_height
+
         self.reset_position()
-        self.previous_x = self.x
-        self.previous_y = self.y
+        
+
 
     def set_attributes_based_on_level(self):
         self.radius = 10 + (self.level - 1) * 5
@@ -36,30 +40,30 @@ class Enemy:
     def reset_position(self):
         edge = random.choice(['top', 'bottom', 'left', 'right'])
         if edge == 'top':
-            self.x = random.randint(0, self.game_width - 2 * self.radius)
+            self.x = random.randint(0, self.bg_width - 2 * self.radius)
             self.y = self.radius
         elif edge == 'bottom':
-            self.x = random.randint(0, self.game_width - 2 * self.radius)
-            self.y = self.game_height - self.radius
+            self.x = random.randint(0, self.bg_width - 2 * self.radius)
+            self.y = self.bg_height - self.radius
         elif edge == 'left':
             self.x = self.radius
-            self.y = random.randint(0, self.game_height - 2 * self.radius)
+            self.y = random.randint(0, self.bg_height - 2 * self.radius)
         elif edge == 'right':
-            self.x = self.game_width - self.radius
-            self.y = random.randint(0, self.game_height - 2 * self.radius)
+            self.x = self.bg_width - self.radius
+            self.y = random.randint(0, self.bg_height - 2 * self.radius)
 
         if not self.is_horde_enemy:
             self.level = self.game.choose_enemy_level()
             self.set_attributes_based_on_level()
 
-    def draw(self, screen):
+    def draw(self, screen, offset_x, offset_y):
         pygame.draw.circle(screen, self.color,
-                           (self.x + self.radius, self.y + self.radius),
+                           (self.x + self.radius - offset_x, self.y + self.radius - offset_y),
                            self.radius)
         # Draw the HP inside the enemy
         font = pygame.font.Font(None, 24)
         text = font.render(str(self.hp), True, (255, 255, 255))
-        text_rect = text.get_rect(center=(self.x + self.radius, self.y + self.radius))
+        text_rect = text.get_rect(center=(self.x + self.radius - offset_x, self.y + self.radius - offset_y))
         screen.blit(text, text_rect)
 
     def update(self, player_x, player_y, walls):

@@ -22,26 +22,31 @@ class Game:
     MAX_LEVEL = 5
     
     def __init__(self, width, height):
+        
+        self.background_image = pygame.image.load(r"assets/images/background/expanded_grassfield.png")
+        self.bg_width = self.background_image.get_width()
+        self.bg_height = self.background_image.get_height()
+        
         self.width = width
         self.height = height
         self.cell_size = 25
         self.spatial_grid = SpatialGrid(width, height, self.cell_size)
-        self.player = Player(width // 2, height // 2, width, height, self)
+        self.player = Player(self.bg_width // 2, self.bg_height // 2, width, height, self)
         self.enemies = []
         self.walls = []
         self.crystals = []
         self.hordes = []
         self.next_horde_spawn_time = random.randint(50, 100)
         self.horde_interval = (50, 100)
-        self.initialize_enemies(5)  # Initialize with 5 enemies
+
         self.font = pygame.font.Font(None, 36)
         self.hiscore_font = pygame.font.Font("assets/fonts/ARCADECLASSIC.ttf", 50)
         self.hiscore_file = "hiscore.csv"
         self.loot_items = []
 
         # Percentage lootchange from each kill (0 - 100)
-        self.lootchance = 10
-        
+        self.lootchance = 10        
+        self.initialize_enemies(5)  # Initialize with 5 enemies
         
         for enemy in self.enemies: 
             self.spatial_grid.add(enemy, enemy.x, enemy.y)
@@ -239,6 +244,8 @@ class Game:
         new_hiscore_screen = False
         elapsed_time = 0
         player_name = ""
+        
+
 
         while running:
             for event in pygame.event.get():
@@ -299,25 +306,30 @@ class Game:
 
             elif game_active:
                 elapsed_time = (pygame.time.get_ticks() - start_time) / 1000
-                screen.fill((0, 0, 0))
+                
+                # Calculate offset to keep player centered
+                offset_x = min(max(self.player.x - self.width // 2, 0), self.bg_width - self.width)
+                offset_y = min(max(self.player.y - self.height // 2, 0), self.bg_height - self.height)
+                
+                screen.blit(self.background_image, (-offset_x, -offset_y))
                 
                 self.update_hordes(elapsed_time)
                 
                 for crystal in self.crystals: 
-                    crystal.draw(screen)
+                    crystal.draw(screen, offset_x, offset_y)
                 
                 for wall in self.walls:
-                    wall.draw(screen)
+                    wall.draw(screen, offset_x, offset_y)
 
                 for enemy in self.enemies:
                     enemy.update(self.player.x, self.player.y, self.walls)
-                    enemy.draw(screen)
+                    enemy.draw(screen, offset_x, offset_y)
 
                 for loot in self.loot_items:
-                    loot.draw(screen)
+                    loot.draw(screen, offset_x, offset_y)
 
                 self.player.update(self.enemies, self.walls, self.crystals)
-                self.player.draw(screen)
+                self.player.draw(screen, offset_x, offset_y)
                     
                 self.player.draw_experience_bar(screen)
                 self.draw_life_meter(screen)
