@@ -1,3 +1,12 @@
+<<<<<<< HEAD
+
+
+            
+            
+
+
+
+=======
 import pygame
 import random
 import math
@@ -242,10 +251,13 @@ class Game:
         if elapsed_time >= self.next_horde_spawn_time:
             self.spawn_horde()
             self.next_horde_spawn_time = elapsed_time + random.randint(*self.horde_interval)
+>>>>>>> b89de92c16d86c62ba5f8d59ba4c95f4910b90f0
 
         for horde in self.hordes:
             horde.update(elapsed_time)
 
+<<<<<<< HEAD
+=======
     def run(self, FPS):
         pygame.init()
         screen = pygame.display.set_mode((self.width, self.height))
@@ -359,19 +371,19 @@ class Game:
             clock.tick(FPS)
 
         pygame.quit()
+>>>>>>> b89de92c16d86c62ba5f8d59ba4c95f4910b90f0
 
 
-class Enemy:
-    LEVEL_COLORS = {
-        1: (0, 0, 255),   # Blue
-        2: (0, 255, 0),   # Green
-        3: (255, 255, 0), # Yellow
-        4: (255, 165, 0), # Orange
-        5: (255, 0, 0)    # Red
-    }
 
-    COOLDOWN_TIME = 5000  # Cooldown time in milliseconds
 
+<<<<<<< HEAD
+
+    
+
+
+
+
+=======
     def __init__(self, game, game_width, game_height, level=None, is_horde_enemy=False):
         self.game = game
         self.radius = 10 + (level - 1) * 5  # Increase size slightly with each level
@@ -730,21 +742,12 @@ class Player:
         for wall in walls:
             if self.get_hitbox().colliderect(wall.get_hitbox()):
                 self.resolve_collision(wall.get_hitbox())
+>>>>>>> b89de92c16d86c62ba5f8d59ba4c95f4910b90f0
 
-    def resolve_collision(self, rect):
-        if self.x < rect.x:
-            self.x = rect.x - self.width
-        elif self.x + self.width > rect.x + rect.width:
-            self.x = rect.x + rect.width
-        if self.y < rect.y:
-            self.y = rect.y - self.height
-        elif self.y + self.height > rect.y + rect.height:
-            self.y = rect.y + rect.height
 
-    def build_wall(self):
-        wall = Environment(self.x, self.y)
-        self.game.walls.append(wall)
 
+<<<<<<< HEAD
+=======
 
     def shoot(self, enemies):
         current_time = pygame.time.get_ticks()
@@ -920,3 +923,4 @@ class SpatialGrid:
                 if nearby_cell in self.grid:
                     nearby_items.extend(self.grid[nearby_cell])
         return nearby_items
+>>>>>>> b89de92c16d86c62ba5f8d59ba4c95f4910b90f0

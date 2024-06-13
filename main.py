@@ -1,7 +1,7 @@
 import cProfile
 import pstats
 import pygame
-from utilities import Game
+from Game import Game
 
 # Define constants
 GAME_WIDTH = 800
