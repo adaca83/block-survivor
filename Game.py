@@ -10,6 +10,7 @@ from Projectiles import *
 from Player import * 
 from Horde import * 
 from Loot import * 
+from Animator import *
 
 class Game:
     enemy_probabilities={
@@ -47,6 +48,8 @@ class Game:
         # Percentage lootchange from each kill (0 - 100)
         self.lootchance = 10        
         self.initialize_enemies(5)  # Initialize with 5 enemies
+
+        self.animator = Animator()
         
         for enemy in self.enemies: 
             self.spatial_grid.add(enemy, enemy.x, enemy.y)
@@ -88,6 +91,9 @@ class Game:
                         self.player.projectiles.remove(projectile)
                     enemy.hp -= 1
                     if enemy.hp <= 0:
+                        
+                        self.animator.death_animation(enemy, self.offset_x, self.offset_y)
+
                         if random.randint(1,100) <= self.lootchance:
                             new_loot = Loot(enemy)
                             self.loot_items.append(new_loot)
@@ -310,6 +316,8 @@ class Game:
                 # Calculate offset to keep player centered
                 offset_x = min(max(self.player.x - self.width // 2, 0), self.bg_width - self.width)
                 offset_y = min(max(self.player.y - self.height // 2, 0), self.bg_height - self.height)
+                self.offset_x = offset_x
+                self.offset_y = offset_y
                 
                 screen.blit(self.background_image, (-offset_x, -offset_y))
                 
@@ -327,6 +335,9 @@ class Game:
 
                 for loot in self.loot_items:
                     loot.draw(screen, offset_x, offset_y)
+
+                self.animator.draw_death_animations(screen)
+                self.animator.update_death_animation()
 
                 self.player.update(self.enemies, self.walls, self.crystals)
                 self.player.draw(screen, offset_x, offset_y)

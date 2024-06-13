@@ -15,7 +15,7 @@ class Player:
         self.hp = 5
         self.projectiles = []
         self.last_shot_time = 0
-        self.shot_interval = 500  # milliseconds
+        self.shot_interval = 1000  # milliseconds
         self.game = game  # Reference to the game instance
         self.experience = 0
         self.level = 1
