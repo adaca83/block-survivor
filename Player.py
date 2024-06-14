@@ -11,11 +11,11 @@ class Player:
         self.width = 16
         self.height = 16
         self.color = (255, 0, 0)
-        self.speed = 5
+        self.speed = 3
         self.hp = 5
         self.projectiles = []
         self.last_shot_time = 0
-        self.shot_interval = 1000  # milliseconds
+        self.shot_interval = 1500  # milliseconds
         self.game = game  # Reference to the game instance
         self.experience = 0
         self.level = 1

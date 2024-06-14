@@ -6,7 +6,7 @@ class Projectile:
     default_width = 5
     default_height = 5
     default_color = (128, 128, 128)
-    default_speed = 10
+    default_speed = 5
 
     def __init__(self, x, y, target_x, target_y):
         self.x = x

@@ -92,7 +92,7 @@ class Game:
                     enemy.hp -= 1
                     if enemy.hp <= 0:
                         
-                        self.animator.death_animation(enemy, self.offset_x, self.offset_y)
+                        self.animator.death_animation(enemy)
 
                         if random.randint(1,100) <= self.lootchance:
                             new_loot = Loot(enemy)
@@ -316,8 +316,7 @@ class Game:
                 # Calculate offset to keep player centered
                 offset_x = min(max(self.player.x - self.width // 2, 0), self.bg_width - self.width)
                 offset_y = min(max(self.player.y - self.height // 2, 0), self.bg_height - self.height)
-                self.offset_x = offset_x
-                self.offset_y = offset_y
+                
                 
                 screen.blit(self.background_image, (-offset_x, -offset_y))
                 
@@ -336,7 +335,7 @@ class Game:
                 for loot in self.loot_items:
                     loot.draw(screen, offset_x, offset_y)
 
-                self.animator.draw_death_animations(screen)
+                self.animator.draw_death_animations(screen, offset_x, offset_y)
                 self.animator.update_death_animation()
 
                 self.player.update(self.enemies, self.walls, self.crystals)
