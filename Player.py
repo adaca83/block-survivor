@@ -12,8 +12,6 @@ class Player:
         self.height = 16
         self.color = (255, 0, 0)
         self.speed = 5
-        self.game_width = game_width
-        self.game_height = game_height
         self.hp = 5
         self.projectiles = []
         self.last_shot_time = 0
@@ -30,11 +28,10 @@ class Player:
         self.projectile_info = projectile
         self.change_weapon = True
         
-        
-    def draw(self, screen):
-        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+    def draw(self, screen, offset_x, offset_y):
+        pygame.draw.rect(screen, self.color, (self.x - offset_x, self.y - offset_y, self.width, self.height))
         for projectile in self.projectiles:
-            projectile.draw(screen)
+            projectile.draw(screen, offset_x, offset_y)
 
     def update(self, enemies, walls, crystals):
         keys = pygame.key.get_pressed()
@@ -53,10 +50,18 @@ class Player:
             
         new_x = self.x + movement_vector.x
         new_y = self.y + movement_vector.y
-        if 0 <= new_x <= self.game_width - self.width:
+        
+        bg_width = self.game.background_image.get_width()
+        bg_height = self.game.background_image.get_height()
+        
+        half_player_width = self.width // 2
+        half_player_height = self.height // 2 + 30  # The 30 is to avoid the exp bar
+        
+        if self.width // 2 <= new_x <= bg_width - half_player_width: 
             self.x = new_x
-        if 0 <= new_y <= self.game_height - self.height:
+        if self.height // 2 <= new_y <= bg_height - half_player_height: 
             self.y = new_y
+            
             
         self.handle_collisions(walls)
         self.shoot(enemies)
@@ -92,11 +97,11 @@ class Player:
             self.level += 1
             
     def draw_experience_bar(self, screen): 
-        bar_width = self.game_width
+        bar_width = self.game.width
         bar_height = 20
         filled_width = (self.experience / 100 ) * bar_width
-        pygame.draw.rect(screen, (0, 0, 0), (0, self.game_height - bar_height, bar_width, bar_height))
-        pygame.draw.rect(screen, (0, 0, 255), (0, self.game_height - bar_height, filled_width, bar_height))
+        pygame.draw.rect(screen, (0, 0, 0), (0, self.game.height - bar_height, bar_width, bar_height))
+        pygame.draw.rect(screen, (0, 0, 255), (0, self.game.height - bar_height, filled_width, bar_height))
         
     def handle_collisions(self, walls):
         for wall in walls:
@@ -116,7 +121,6 @@ class Player:
     def build_wall(self):
         wall = Environment(self.x, self.y)
         self.game.walls.append(wall)
-
 
     def shoot(self, enemies):
         current_time = pygame.time.get_ticks()

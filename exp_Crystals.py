@@ -12,8 +12,8 @@ class exp_Crystals:
         self.speed = 5
         
         
-    def draw(self, screen): 
-        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+    def draw(self, screen, offset_x, offset_y): 
+        pygame.draw.rect(screen, self.color, (self.x - offset_x, self.y - offset_y, self.width, self.height))
         
     def get_hitbox(self): 
         return pygame.Rect(self.x, self.y, self.width, self.height)
