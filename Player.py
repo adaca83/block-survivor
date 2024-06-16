@@ -23,15 +23,26 @@ class Player:
         self.change_weapon = False
         self.projectile_info = None
         self.weapon_change_time = None
+        self.hat = None
 
     def new_weapon(self, projectile:dict):
         self.projectile_info = projectile
         self.change_weapon = True
+
+    def add_hat(self, hat):
+        self.hat = pygame.image.load(hat)
         
     def draw(self, screen, offset_x, offset_y):
         pygame.draw.rect(screen, self.color, (self.x - offset_x, self.y - offset_y, self.width, self.height))
         for projectile in self.projectiles:
             projectile.draw(screen, offset_x, offset_y)
+
+        if self.hat:
+            hat_x = self.x - offset_x + (self.width - self.hat.get_width()) // 2
+            hat_y = self.y - offset_y - self.hat.get_height()
+        
+            # Blit the hat image above the player
+            screen.blit(self.hat, (hat_x, hat_y))
 
     def update(self, enemies, walls, crystals):
         keys = pygame.key.get_pressed()
@@ -142,7 +153,7 @@ class Player:
                 
                 if self.weapon_change_time is not None and (current_time - self.weapon_change_time) >= self.projectile_info.chosen_loot['duration']:
                     projectile.reset_projectile()
-                    self.shot_interval = 500
+                    self.shot_interval = 1500
 
     def distance_to(self, enemy):
         dx = enemy.x - self.x

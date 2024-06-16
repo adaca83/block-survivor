@@ -46,7 +46,7 @@ class Game:
         self.loot_items = []
 
         # Percentage lootchange from each kill (0 - 100)
-        self.lootchance = 10        
+        self.lootchance = 30
         self.initialize_enemies(5)  # Initialize with 5 enemies
 
         self.animator = Animator()
@@ -119,7 +119,13 @@ class Game:
 
         for loot in self.loot_items:
             if player_hitbox.colliderect(loot.get_hitbox()):
-                self.player.new_weapon(loot)
+
+                if loot.is_weapon():
+                    self.player.new_weapon(loot)
+                else:
+                    hat = loot.get_hat_location()
+                    self.player.add_hat(hat)
+
                 self.loot_items.remove(loot)
 
         return True
