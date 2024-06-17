@@ -55,7 +55,7 @@ class Game:
             self.spatial_grid.add(enemy, enemy.x, enemy.y)
 
     def initialize_enemies(self, num_enemies):
-        self.enemies = [Enemy(self, self.width, self.height, level=self.choose_enemy_level()) for _ in range(num_enemies)]
+        self.enemies = [Enemy(self, self.width, self.height, level=self.choose_enemy_level(), player=self.player) for _ in range(num_enemies)]
 
     def reset(self):
         self.player = Player(self.width // 2, self.height // 2, self.width, self.height, self)
@@ -66,7 +66,7 @@ class Game:
             self.spatial_grid.add(enemy, enemy.x, enemy.y)
 
 
-    def check_collisions(self):
+    def check_collisions(self, offset_x, offset_y):
         player_hitbox = self.player.get_hitbox()
         for enemy in self.enemies[:]:
             if player_hitbox.colliderect(enemy.get_hitbox()):
@@ -74,7 +74,7 @@ class Game:
                 self.spatial_grid.remove(enemy, enemy.x, enemy.y)
                 self.enemies.remove(enemy)
                 if not enemy.is_horde_enemy:
-                    enemy.reset_position()
+                    enemy.reset_position(offset_x, offset_y)
                     enemy.level = self.choose_enemy_level()
                     enemy.set_attributes_based_on_level()
                     self.enemies.append(enemy)
@@ -104,7 +104,7 @@ class Game:
                         crystal = exp_Crystals(enemy.x, enemy.y)
                         self.crystals.append(crystal)
                         if not enemy.is_horde_enemy:
-                            enemy.reset_position()
+                            enemy.reset_position(offset_x, offset_y)
                             enemy.level = self.choose_enemy_level()
                             enemy.set_attributes_based_on_level()
                             self.enemies.append(enemy)
@@ -233,7 +233,7 @@ class Game:
             n += 50
             
     def spawn_horde(self): 
-        new_horde = Horde(self)
+        new_horde = Horde(self, player=self.player)
         self.hordes.append(new_horde)
         
     def update_hordes(self, elapsed_time): 
@@ -352,7 +352,7 @@ class Game:
                 self.draw_level_meter(screen)
                 self.draw_timer(screen, elapsed_time)
                 
-                if not self.check_collisions():
+                if not self.check_collisions(offset_x, offset_y):
                     game_active = False
 
                     if self.check_if_highscore(elapsed_time):
@@ -362,7 +362,7 @@ class Game:
 
                 # Increase the number of enemies every 5 seconds
                 if int(elapsed_time) % 20 == 0 and len(self.enemies) < int(elapsed_time) // 20 + 5:
-                    self.enemies.append(Enemy(self, self.width, self.height, level=self.choose_enemy_level()))
+                    self.enemies.append(Enemy(self, self.width, self.height, level=self.choose_enemy_level(), player=self.player))
 
             pygame.display.flip()
             clock.tick(FPS)

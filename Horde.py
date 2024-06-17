@@ -6,12 +6,13 @@ class Horde:
     HORDE_MAX_SIZE = 16
     HORDE_SPACING = 30
 
-    def __init__(self, game):
+    def __init__(self, game, player=None):
         self.game = game
         self.enemies = []
         self.spawn_time = self.generate_next_spawn_time()
         self.pattern = self.choose_pattern()
         self.spawned = False
+        self.player = player
 
     def generate_next_spawn_time(self):
         return random.randint(50, 100)
@@ -36,7 +37,7 @@ class Horde:
         positions = self.get_horde_positions_outside_of_view(self.pattern, num_enemies)
 
         for pos in positions:
-            enemy = Enemy(self.game, self.game.width, self.game.height, level=1, is_horde_enemy=True)
+            enemy = Enemy(self.game, self.game.width, self.game.height, level=1, is_horde_enemy=True, player=self.player)
             enemy.x, enemy.y = pos
             enemy.set_attributes_based_on_level()
             self.enemies.append(enemy)

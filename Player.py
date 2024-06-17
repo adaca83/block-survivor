@@ -24,6 +24,7 @@ class Player:
         self.projectile_info = None
         self.weapon_change_time = None
         self.hat = None
+        self.FOV = 200 # Field of view distance
 
     def new_weapon(self, projectile:dict):
         self.projectile_info = projectile
@@ -36,6 +37,8 @@ class Player:
         pygame.draw.rect(screen, self.color, (self.x - offset_x, self.y - offset_y, self.width, self.height))
         for projectile in self.projectiles:
             projectile.draw(screen, offset_x, offset_y)
+            
+        pygame.draw.circle(screen, (192, 192, 192, 128), (self.x + self.width // 2 - offset_x, self.y + self.height // 2 - offset_y), self.FOV, 1)
 
         if self.hat:
             hat_x = self.x - offset_x + (self.width - self.hat.get_width()) // 2
@@ -137,23 +140,33 @@ class Player:
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot_time >= self.shot_interval:
             if enemies:
-                nearest_enemy = min(enemies, key=lambda enemy: self.distance_to(enemy))
-                target_x = nearest_enemy.x + nearest_enemy.radius
-                target_y = nearest_enemy.y + nearest_enemy.radius
-
-                projectile = Projectile(self.x + self.width // 2, self.y + self.height // 2, target_x, target_y)
-                self.projectiles.append(projectile)
-                self.last_shot_time = current_time
-
-                if self.change_weapon:
-                    projectile.set_new_projectile(self.projectile_info)
-                    self.shot_interval = self.projectile_info.chosen_loot['shootspeed']
-                    self.change_weapon = False
-                    self.weapon_change_time = current_time
                 
-                if self.weapon_change_time is not None and (current_time - self.weapon_change_time) >= self.projectile_info.chosen_loot['duration']:
-                    projectile.reset_projectile()
-                    self.shot_interval = 1500
+                nearest_enemy = None
+                nearest_distance = self.FOV
+                
+                for enemy in enemies: 
+                    distance = self.distance_to(enemy)
+                    if distance <= self.FOV and distance < nearest_distance: 
+                        nearest_enemy = enemy
+                        nearest_distance = distance
+                        
+                if nearest_enemy: 
+                    target_x = nearest_enemy.x + nearest_enemy.radius
+                    target_y = nearest_enemy.y + nearest_enemy.radius
+
+                    projectile = Projectile(self.x + self.width // 2, self.y + self.height // 2, target_x, target_y)
+                    self.projectiles.append(projectile)
+                    self.last_shot_time = current_time
+
+                    if self.change_weapon:
+                        projectile.set_new_projectile(self.projectile_info)
+                        self.shot_interval = self.projectile_info.chosen_loot['shootspeed']
+                        self.change_weapon = False
+                        self.weapon_change_time = current_time
+                
+                        if self.weapon_change_time is not None and (current_time - self.weapon_change_time) >= self.projectile_info.chosen_loot['duration']:
+                            projectile.reset_projectile()
+                            self.shot_interval = 1500
 
     def distance_to(self, enemy):
         dx = enemy.x - self.x

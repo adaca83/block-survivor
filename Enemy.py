@@ -12,14 +12,16 @@ class Enemy:
     }
 
     COOLDOWN_TIME = 5000  # Cooldown time in milliseconds
+    OFFSET = 50  # Maximum offset from the edge of the playing area for spawning
 
-    def __init__(self, game, game_width, game_height, level=None, is_horde_enemy=False):
+    def __init__(self, game, game_width, game_height, level=None, is_horde_enemy=False, player=None):
+        self.player = player
         self.game = game
         self.radius = 10 + (level - 1) * 5  # Increase size slightly with each level
         self.color = self.LEVEL_COLORS.get(level, (255, 255, 255))  # Default to white if level not in dictionary
         self.game_width = game_width
         self.game_height = game_height
-        self.speed = 0.5 * level
+        self.speed = 0.5 
         self.level = level if level else self.game.choose_enemy_level()
         self.hp = self.level
         self.last_evolution_time = pygame.time.get_ticks()  # Time of the last evolution
@@ -28,29 +30,31 @@ class Enemy:
         self.bg_width = game.bg_width
         self.bg_height = game.bg_height
 
-        self.reset_position()
-        
+        self.offset_x = min(max(self.player.x - self.game_width // 2, 0), self.bg_width - self.game_width)
+        self.offset_y = min(max(self.player.y - self.game_height // 2, 0), self.bg_height - self.game_height)
 
+        self.reset_position(self.offset_x, self.offset_y)
 
     def set_attributes_based_on_level(self):
         self.radius = 10 + (self.level - 1) * 5
         self.color = self.LEVEL_COLORS.get(self.level, (255, 255, 255))
         self.hp = self.level
 
-    def reset_position(self):
+    def reset_position(self, offset_x, offset_y):
         edge = random.choice(['top', 'bottom', 'left', 'right'])
+        offset = random.randint(0, self.OFFSET)
         if edge == 'top':
-            self.x = random.randint(0, self.bg_width - 2 * self.radius)
-            self.y = self.radius
+            self.x = random.randint(-self.OFFSET, self.game_width + self.OFFSET) + offset_x
+            self.y = -offset + offset_y
         elif edge == 'bottom':
-            self.x = random.randint(0, self.bg_width - 2 * self.radius)
-            self.y = self.bg_height - self.radius
+            self.x = random.randint(-self.OFFSET, self.game_width + self.OFFSET) + offset_x
+            self.y = self.game_height + offset + offset_y
         elif edge == 'left':
-            self.x = self.radius
-            self.y = random.randint(0, self.bg_height - 2 * self.radius)
+            self.x = -offset + offset_x
+            self.y = random.randint(-self.OFFSET, self.game_height + self.OFFSET) + offset_y
         elif edge == 'right':
-            self.x = self.bg_width - self.radius
-            self.y = random.randint(0, self.bg_height - 2 * self.radius)
+            self.x = self.game_width + offset + offset_x
+            self.y = random.randint(-self.OFFSET, self.game_height + self.OFFSET) + offset_y
 
         if not self.is_horde_enemy:
             self.level = self.game.choose_enemy_level()
