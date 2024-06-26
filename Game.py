@@ -11,6 +11,7 @@ from Player import *
 from Horde import * 
 from Loot import * 
 from Animator import *
+from NPC import *
 
 class Game:
     enemy_probabilities={
@@ -44,6 +45,8 @@ class Game:
         self.hiscore_font = pygame.font.Font("assets/fonts/ARCADECLASSIC.ttf", 50)
         self.hiscore_file = "hiscore.csv"
         self.loot_items = []
+
+        self.npc = NPC("green_vendor", self, self.width, self.height)
 
         # Percentage lootchange from each kill (0 - 100)
         self.lootchance = 30
@@ -340,6 +343,8 @@ class Game:
 
                 for loot in self.loot_items:
                     loot.draw(screen, offset_x, offset_y)
+
+                self.npc.draw(screen, offset_x, offset_y)
 
                 self.animator.draw_death_animations(screen, offset_x, offset_y)
                 self.animator.update_death_animation()
