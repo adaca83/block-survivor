@@ -1,3 +1,4 @@
+# Player.py
 import pygame
 import math
 
@@ -25,6 +26,7 @@ class Player:
         self.weapon_change_time = None
         self.hat = None
         self.FOV = 200 # Field of view distance
+        self.level_up = False  # New attribute to track level-up state
 
     def new_weapon(self, projectile:dict):
         self.projectile_info = projectile
@@ -97,7 +99,7 @@ class Player:
                 
                 if self.get_hitbox().colliderect(crystal.get_hitbox()): 
                     crystals.remove(crystal)
-                    self.add_experience(10)
+                    self.add_experience(25)
                 
     def distance_to(self, entity): 
         dx = entity.x - self.x 
@@ -109,6 +111,7 @@ class Player:
         if self.experience >= 100: 
             self.experience = 0
             self.level += 1
+            self.level_up = True  # Set level-up state
             
     def draw_experience_bar(self, screen): 
         bar_width = self.game.width
