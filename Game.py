@@ -10,7 +10,8 @@ from Player import *
 from Horde import * 
 from Loot import * 
 from Animator import *
-from Level_Up_Menu import level_up_menu  # Import the level_up_menu class
+from NPC import *
+from Level_Up_Menu import *
 
 class Game:
     enemy_probabilities = {
@@ -46,9 +47,10 @@ class Game:
         self.hiscore_file = "hiscore.csv"
         self.loot_items = []
         self.lootchance = 30
-        self.initialize_enemies(50)  # Initialize with 5 enemies
+        self.initialize_enemies(50)  # Initialize with 50 enemies
         self.animator = Animator()
-        self.level_up_menu = level_up_menu(width, height, self.font, self.player)  # Initialize level up menu
+        self.level_up_menu = level_up_menu(width, height, self.font, self.player)  
+        self.npc = NPC("green_vendor", self, self.width, self.height)
 
         for enemy in self.enemies: 
             self.spatial_grid.add(enemy, enemy.x, enemy.y)
@@ -235,6 +237,9 @@ class Game:
             enemy.draw(screen, offset_x, offset_y)
         for loot in self.loot_items: 
             loot.draw(screen, offset_x, offset_y)
+
+        self.npc.draw(screen, offset_x, offset_y)
+
         self.animator.draw_death_animations(screen, offset_x, offset_y)
         self.player.draw(screen, offset_x, offset_y)
         self.player.draw_experience_bar(screen)
@@ -253,9 +258,9 @@ class Game:
         if self.state == "start_screen": 
             if event.key == pygame.K_RETURN: 
                 self.start_game()
-        elif self.state == "game_active":
-            if event.key == pygame.K_x: 
-                self.end_game()
+#        elif self.state == "game_active":
+#            if event.key == pygame.K_x: 
+#                self.end_game()
         elif self.state == "credit_screen": 
             if event.key == pygame.K_SPACE:
                 self.restart_game()
