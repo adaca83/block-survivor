@@ -23,13 +23,17 @@ class Game:
     MAX_LEVEL = 5
     
     def __init__(self, width, height):
+
+        self.width = width
+        self.height = height
+
+        self.screen = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption("Square Survivor (Beta 0.1)")
         
         self.background_image = pygame.image.load(r"assets/images/background/expanded_grassfield.png")
         self.bg_width = self.background_image.get_width()
         self.bg_height = self.background_image.get_height()
-        
-        self.width = width
-        self.height = height
+
         self.cell_size = 25
         self.spatial_grid = SpatialGrid(width, height, self.cell_size)
         self.player = Player(self.bg_width // 2, self.bg_height // 2, width, height, self)
@@ -245,9 +249,6 @@ class Game:
             horde.update(elapsed_time)
 
     def run(self, FPS):
-        pygame.init()
-        screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Square Survivor (Beta 0.1)")
         clock = pygame.time.Clock()
         running = True
         startscreen = True
@@ -256,8 +257,6 @@ class Game:
         new_hiscore_screen = False
         elapsed_time = 0
         player_name = ""
-        
-
 
         while running:
             for event in pygame.event.get():
@@ -282,7 +281,7 @@ class Game:
                         elif event.key == pygame.K_q:
                             credit_screen = False
                             running = False
-                        
+
                     elif new_hiscore_screen:
                         if event.key == pygame.K_RETURN:
                             self.save_highscore(player_name, elapsed_time)
@@ -303,55 +302,57 @@ class Game:
                             credit_screen = True
 
             if startscreen:
-                self.run_startscreen(screen)
+                self.run_startscreen(self.screen)
 
             elif credit_screen:
-                self.run_credits(screen, elapsed_time)
+                self.run_credits(self.screen, elapsed_time)
 
             elif new_hiscore_screen:
-                self.run_new_hiscore(screen)
+                self.run_new_hiscore(self.screen)
                 input_box = pygame.Rect(self.width // 2 - 100, self.height // 2 - 20, 200, 40)
                 color_active = pygame.Color('dodgerblue2')
-                pygame.draw.rect(screen, color_active, input_box, 2)
+                pygame.draw.rect(self.screen, color_active, input_box, 2)
                 txt_surface = self.font.render(player_name, True, (255, 255, 255))
-                screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+                self.screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
 
             elif game_active:
                 elapsed_time = (pygame.time.get_ticks() - start_time) / 1000
-                
+
                 # Calculate offset to keep player centered
                 offset_x = min(max(self.player.x - self.width // 2, 0), self.bg_width - self.width)
                 offset_y = min(max(self.player.y - self.height // 2, 0), self.bg_height - self.height)
-                
-                
-                screen.blit(self.background_image, (-offset_x, -offset_y))
-                
+
+                self.screen.blit(self.background_image, (-offset_x, -offset_y))
+
                 self.update_hordes(elapsed_time)
-                
+
                 for crystal in self.crystals: 
-                    crystal.draw(screen, offset_x, offset_y)
-                
+                    crystal.draw(self.screen, offset_x, offset_y)
+
                 for wall in self.walls:
-                    wall.draw(screen, offset_x, offset_y)
+                    wall.draw(self.screen, offset_x, offset_y)
 
                 for enemy in self.enemies:
                     enemy.update(self.player.x, self.player.y, self.walls)
-                    enemy.draw(screen, offset_x, offset_y)
+                    enemy.draw(self.screen, offset_x, offset_y)
 
                 for loot in self.loot_items:
-                    loot.draw(screen, offset_x, offset_y)
+                    loot.draw(self.screen, offset_x, offset_y)
 
-                self.animator.draw_death_animations(screen, offset_x, offset_y)
+                self.player.update(self.enemies, self.walls, self.crystals, self.animator)
+                self.animator.update_run_animation(self.player)
+                self.animator.draw_run_animation(self.screen, self.player, offset_x, offset_y)
+                self.player.draw(self.screen, offset_x, offset_y, self.animator)
+                
+
+                self.animator.draw_death_animations(self.screen, offset_x, offset_y)
                 self.animator.update_death_animation()
 
-                self.player.update(self.enemies, self.walls, self.crystals)
-                self.player.draw(screen, offset_x, offset_y)
-                    
-                self.player.draw_experience_bar(screen)
-                self.draw_life_meter(screen)
-                self.draw_level_meter(screen)
-                self.draw_timer(screen, elapsed_time)
-                
+                self.player.draw_experience_bar(self.screen)
+                self.draw_life_meter(self.screen)
+                self.draw_level_meter(self.screen)
+                self.draw_timer(self.screen, elapsed_time)
+
                 if not self.check_collisions(offset_x, offset_y):
                     game_active = False
 

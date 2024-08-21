@@ -3,14 +3,12 @@ import math
 
 from Projectiles import * 
 from Environment import * 
+from Animator import *
 
 class Player:
     def __init__(self, x, y, game_width, game_height, game):
         self.x = x
         self.y = y
-        self.width = 16
-        self.height = 16
-        self.color = (255, 0, 0)
         self.speed = 3
         self.hp = 5
         self.projectiles = []
@@ -24,59 +22,92 @@ class Player:
         self.projectile_info = None
         self.weapon_change_time = None
         self.hat = None
-        self.FOV = 200 # Field of view distance
+        self.FOV = 200  # Field of view distance
+        self.last_direction = 'right'
+        self.hat_extra_offset = 5
 
-    def new_weapon(self, projectile:dict):
+        # Load the idle sprite
+        self.idle_sprite_right = pygame.image.load("assets/images/player/RG_idle_right.png").convert_alpha()
+        self.idle_sprite_left = pygame.image.load("assets/images/player/RG_idle_left.png").convert_alpha()
+        self.sprite = self.idle_sprite_right
+        self.width = self.sprite.get_width()
+        self.height = self.sprite.get_height()
+
+    def new_weapon(self, projectile: dict):
         self.projectile_info = projectile
         self.change_weapon = True
 
     def add_hat(self, hat):
         self.hat = pygame.image.load(hat)
-        
-    def draw(self, screen, offset_x, offset_y):
-        pygame.draw.rect(screen, self.color, (self.x - offset_x, self.y - offset_y, self.width, self.height))
+
+    def draw(self, screen, offset_x, offset_y, animator):
+        # Use the current frame from the animator if available
+        if self in animator.running_players:
+            self.sprite = animator.running_players[self]['images'][animator.running_players[self]['animation_index']]
+        else:
+            # Use the correct idle sprite based on the last direction
+            self.sprite = self.idle_sprite_left if self.last_direction == 'left' else self.idle_sprite_right
+
+        screen_pos = (self.x - offset_x, self.y - offset_y)
+        screen.blit(self.sprite, screen_pos)
+
         for projectile in self.projectiles:
             projectile.draw(screen, offset_x, offset_y)
-            
-        pygame.draw.circle(screen, (192, 192, 192, 128), (self.x + self.width // 2 - offset_x, self.y + self.height // 2 - offset_y), self.FOV, 1)
+
+        pygame.draw.circle(screen, (192, 192, 192, 128), 
+                           (self.x + self.width // 2 - offset_x, self.y + self.height // 2 - offset_y), self.FOV, 1)
 
         if self.hat:
-            hat_x = self.x - offset_x + (self.width - self.hat.get_width()) // 2
-            hat_y = self.y - offset_y - self.hat.get_height()
-        
-            # Blit the hat image above the player
+            hat_x = self.x - offset_x + (self.width - self.hat.get_width()) // 2 + self.hat_extra_offset
+            hat_y = self.y - offset_y - self.hat.get_height() + 28
             screen.blit(self.hat, (hat_x, hat_y))
 
-    def update(self, enemies, walls, crystals):
+    def update(self, enemies, walls, crystals, animator: Animator):
         keys = pygame.key.get_pressed()
         movement_vector = pygame.Vector2(0, 0)
+        moving = False
+
         if keys[pygame.K_UP]:
-            movement_vector += pygame.Vector2(0, -1)
+            movement_vector.y -= 1
+            moving = True
         if keys[pygame.K_DOWN]:
-            movement_vector += pygame.Vector2(0, 1)
+            movement_vector.y += 1
+            moving = True
         if keys[pygame.K_LEFT]:
-            movement_vector += pygame.Vector2(-1, 0)
+            movement_vector.x -= 1
+            moving = True
+            animator.start_run_animation(self, 1)  # Start left animation
+            self.last_direction = 'left'
+            self.hat_extra_offset = -4
         if keys[pygame.K_RIGHT]:
-            movement_vector += pygame.Vector2(1, 0)
+            movement_vector.x += 1
+            moving = True
+            animator.start_run_animation(self, 0)  # Start right animation
+            self.last_direction = 'right'
+            self.hat_extra_offset = 4
+
+        # Stop running animation if not moving
+        if not moving:
+            animator.stop_run_animation(self)
+
         if movement_vector.length() > 0:
             movement_vector.normalize_ip()
             movement_vector *= self.speed
-            
+
         new_x = self.x + movement_vector.x
         new_y = self.y + movement_vector.y
-        
+
         bg_width = self.game.background_image.get_width()
         bg_height = self.game.background_image.get_height()
-        
+
         half_player_width = self.width // 2
         half_player_height = self.height // 2 + 30  # The 30 is to avoid the exp bar
-        
-        if self.width // 2 <= new_x <= bg_width - half_player_width: 
+
+        if self.width // 2 <= new_x <= bg_width - half_player_width:
             self.x = new_x
-        if self.height // 2 <= new_y <= bg_height - half_player_height: 
+        if self.height // 2 <= new_y <= bg_height - half_player_height:
             self.y = new_y
-            
-            
+
         self.handle_collisions(walls)
         self.shoot(enemies)
         for projectile in self.projectiles:
@@ -84,7 +115,7 @@ class Player:
 
         if keys[pygame.K_w]:
             self.build_wall()
-            
+
         self.collect_crystals(crystals)
         
     def collect_crystals(self, crystals): 
